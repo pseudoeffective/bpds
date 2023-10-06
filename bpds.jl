@@ -1,6 +1,8 @@
+using Memoization
+
 function Rothe(w)
         local n=length(w)
-        local r=Matrix{Union{Missing,String}}(missing,n,n)
+        local r=Matrix{String}(undef,n,n)
              for j = 1:n
                 if j<w[1]
                    r[1,j]="O"
@@ -71,6 +73,11 @@ function can_droop(bpd,i1,j1,i2,j2)
 end
 
 
+
+
+# to generate bpds by drooping from flats, need to allow larger droops.
+# can have "%" on SW or NE corners of rectangle.
+
 function can_flat_droop(bpd,i1,j1,i2,j2)
 
  # check bounds
@@ -96,14 +103,14 @@ function can_flat_droop(bpd,i1,j1,i2,j2)
 
  # check N and S borders
     for j=j1+1:j2-1
-       if bpd[i1,j]=="/" || bpd[i2,j]=="/" || bpd[i1,j]=="%" || bpd[i2,j]=="%"
+       if bpd[i1,j]=="/" || bpd[i2,j]=="/" || bpd[i1,j]=="%" || bpd[i2,j]=="%" || bpd[i1,j]=="O" || bpd[i2,j]=="O"
          return(false)
        end
     end
 
  # check W and E borders
     for i=i1+1:i2-1
-       if bpd[i,j1]=="/" || bpd[i,j2]=="/" || bpd[i,j1]=="%" || bpd[i,j2]=="%"
+       if bpd[i,j1]=="/" || bpd[i,j2]=="/" || bpd[i,j1]=="%" || bpd[i,j2]=="%" || bpd[i,j1]=="O" || bpd[i,j2]=="O"
          return(false)
        end
     end
@@ -111,7 +118,7 @@ function can_flat_droop(bpd,i1,j1,i2,j2)
  # check interior
     for i=i1+1:i2-1
       for j=j1+1:j2-1
-        if bpd[i,j] == "/" || bpd[i,j]=="%"
+        if bpd[i,j] == "/" || bpd[i,j]=="%" || bpd[i,j]=="O"
           return(false)
         end
       end
@@ -244,7 +251,7 @@ end
 function all_droops(bpd)
    local n=size(bpd)[1]
 
-   local dps = Set{Matrix}([])
+   local dps = []
 
    for i1=1:n-1
      for j1=1:n-1
@@ -266,7 +273,7 @@ end
 function flat_droops(bpd)
    local n=size(bpd)[1]
 
-   local dps = Set{Matrix}([])
+   local dps = Vector{Matrix}([])
 
    for i1=1:n-1
      for j1=1:n-1
@@ -288,7 +295,7 @@ end
 function sharp_droops(bpd)
    local n=size(bpd)[1]
 
-   local dps = Set{Matrix}([])
+   local dps = Vector{Matrix}([])
 
    for i1=1:n-1
      for j1=1:n-1
@@ -308,39 +315,46 @@ end
 
 
 
-const bpd_list = Dict{Matrix, Set}()
+# TO FIX: unsure about best lookup table to use here.
+# Memory-wise, it seems bad to store all these values of a recursive function.
+# But since they get met many times on different paths down, seems like there is a substantial speed-up.
+
+#const bpd_list = Dict{Matrix, Vector}()
 
 function all_below(bpd)
 
-   if haskey(bpd_list, bpd)
-     return bpd_list[bpd]
-   end
+#   if haskey(bpd_list, bpd)
+#     return bpd_list[bpd]
+#   end
 
-   if length(all_droops(bpd))==0
-      bpd_list[bpd]=Set{Matrix}([bpd])
-      return bpd_list[bpd]
-#     return Set{Matrix}([bpd])
-   end
-
-   local alldps = Set{Matrix}([])
    local dps=all_droops(bpd)
+
+   if length(dps)==0
+#      bpd_list[bpd]=Vector{Matrix}([bpd])
+#      return bpd_list[bpd]
+     return [bpd]
+   end
+
+   local alldps = []
+
    for b in dps
      alldps=union(alldps,all_below(b))
    end
 
-   push!(alldps,bpd)
+   prepend!(alldps,[bpd])
 
-   bpd_list[bpd]=alldps
-   return bpd_list[bpd]
-#   return alldps
+#   bpd_list[bpd]=alldps
+#   return bpd_list[bpd]
+   return alldps
 end
 
 
-function all_bpds(w)
+
+@memoize function all_bpds(w)
 
   local bpd=Rothe(w)
 
-  return( collect( all_below(bpd) ) )
+  return all_below(bpd)
 
 end
 
@@ -389,6 +403,7 @@ function flatten(bpd)
 
 end   
 
+
 function sharpen(bpd)
    local n=size(bpd)[1]
 
@@ -421,38 +436,35 @@ function sharpen(bpd)
 end
 
 
-const flat_bpd_list = Dict{Matrix, Set}()
 
 function flat_below(bpd)
 
-   if haskey(flat_bpd_list, bpd)
-     return flat_bpd_list[bpd]
-   end
+ # assumes bpd is flat
 
-   if length(flat_droops(bpd))==0
-      flat_bpd_list[bpd]=Set{Matrix}([bpd])
-      return flat_bpd_list[bpd]
-#     return Set{Matrix}([bpd])
-   end
-
-   local alldps = Set{Matrix}([])
    local dps=flat_droops(bpd)
+
+   if length(dps)==0
+     return [bpd]
+   end
+
+   local alldps = Vector{Matrix}([])
+
    for b in dps
      alldps=union(alldps,flat_below(b))
    end
 
-   push!(alldps,bpd)
+   prepend!(alldps,[bpd])
 
-   flat_bpd_list[bpd]=alldps
-   return flat_bpd_list[bpd]
-#   return alldps
+   return alldps
 end
 
-function flat_bpds(w)
 
-  local bpd=Rothe(w)
 
-  return( collect( flat_below(bpd) ) )
+@memoize function flat_bpds(w)
+
+  local bpd=flatten(Rothe(w))
+
+  return flat_below(bpd)
 
 end
 
@@ -473,9 +485,167 @@ end
 
 
 
+function tableau_components(bpd)
+# return labelled tableaux for a flat bpd
+
+  local n=size(bpd)[1]
+
+  if !is_flat(bpd)
+    return( tableau_components( flatten(bpd) ) )
+  end
+
+  local lyds=Vector{Vector}([])
+
+  for i=1:n
+    for j=1:n
+      if bpd[i,j]=="O" && ((i,j)==(1,1) || (i>1 && j>1 &&bpd[i-1,j-1]=="+"))
+        local la=Vector{Int}([])
+        local rr=Vector{Int}([])
+        local s=0
+        while bpd[i+s,j]=="O"
+          local k=0
+            while bpd[i+s,j+k]=="O"
+              k +=1
+            end
+          push!(la,k)
+          local el=1
+            while bpd[i+s+el,j+k-1+el]=="%"
+              el +=1
+            end
+          push!(rr,el-1)
+          s +=1
+        end
+
+        for k=length(la):-1:2
+          if la[k-1]==la[k]
+            rr[k-1]=rr[k]
+          end
+        end
+
+        push!(lyds,[la,rr,[i-1,j-1]])
+
+      end
+    end
+  end
+  return lyds
+end
+
+
+
 #=
+Using Nemo
+
+######
+struct DoublePolyRing
+           ring::ZZMPolyRing
+           x_vars::Vector{ZZMPolyRingElem}
+           y_vars::Vector{ZZMPolyRingElem}
+       end
+
+#####
+function xy_ring(n,m)
+# construct polynomial ring in n xvars and m yvars
+  local xvars = ["x$(i)" for i=1:n]
+  local yvars = ["y$(i)" for i=1:m]
+
+  R,all_vars = polynomial_ring(ZZ,vcat(xvars,yvars))
+
+  x = all_vars[1:n]
+  y = all_vars[n+1:n+m]
+
+  return DoublePolyRing(R,x,y), x, y
+
+end
+=#
+
+
+function bpd2bin( bpd, R::DoublePolyRing=xy_ring( size(bpd)[1]-1, size(bpd)[2]-1 )[1]  )
+# product of binomials for bpd
+# requires DoublePolyRing
+# can get single polyn by using no y_vars
+  local n=size(bpd)[1]-1
+  bin = R.ring(1)
+
+  x = R.x_vars
+  y = R.y_vars
+
+  local aa=length(x)
+  local bb=length(y)
+
+  for i=1:n
+    for j=1:n
+      if bpd[i,j]=="O"
+        p=R.ring(0)
+        if i<=aa
+          p=p+x[i]
+        end
+        if j<=bb
+          p=p+y[j]
+        end        
+        bin = bin*p
+      end
+    end
+  end
+
+  return bin
+
+end
+
+
+function schub_bpd( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1]  )
+# compute schubert pol by bpd formula
+  bpds=all_bpds(w)
+
+  pol=R.ring(0)
+
+  for bp in bpds
+    pol = pol+bpd2bin(bp,R)
+  end
+
+  return(pol)
+
+end
+
+
+function bpd2sd( bpd, R::DoublePolyRing=xy_ring( size(bpd)[1]-1, size(bpd)[2]-1 )[1]  )
+# compute drift class polynomial from flat bpd
+  if !is_flat(bpd)
+    return 0
+  end
+
+  sd = R.ring(1)
+
+  tcomps = tableau_components(bpd)
+
+  for tt in tcomps
+    tt[2] = tt[2]+collect(1:length(tt[2]))
+    sd = sd*schur_poly( tt[1], tt[2], R; xoffset=tt[3][1], yoffset=tt[3][2] )
+  end
+
+  return sd
+
+end
+
+
+function schub_flats( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1] )
+# drift class formula
+
+  fbpds = flat_bpds(w)
+
+  pol = R.ring(0)
+
+  for b in fbpds
+    pol = pol+bpd2sd(b,R)
+  end
+
+  return pol
+
+end
+
+#=
+
 # graphics
-# using Plots
+using Plots
 
 function draw_se_elbow_curve(x1, y1, x3, y3)
     x2, y2 = x3, y1
@@ -525,10 +695,19 @@ function draw_bpd(B,fn)
 end
 
 
-# sample for producing a bunch of images
-for i=1:240
-       draw_bpd(tww3[i],string("./bpd_figs/w32187654bpd",i,".pdf"))
-       end;
+
+function print_flat_bpds(w,fn,fmt)
+
+  local ds=flat_bpds(w)
+  local n=length(ds)
+
+  for i=1:n
+    draw_bpd(ds[i],string(fn,i,fmt))
+  end
+
+end
 
 
 =#
+
+
