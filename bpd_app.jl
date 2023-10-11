@@ -1,3 +1,11 @@
+# Widget for displaying Bumpless Pipe Dreams
+# David Anderson, October 2023
+
+
+using Gtk
+
+include("./bpds.jl")
+
 function parse_vector(input_str::String)
     # Remove brackets and split by comma
     elements = split(replace(input_str, "[" => "", "]" => ""), ",")
@@ -12,6 +20,10 @@ win = GtkWindow("BPD Maker", 400, 300)
 label = Gtk.Label("Permutation w = ")
 entry = Gtk.Entry()
 GAccessor.text(entry, "[2,1,4,3]")
+
+# Create toggle button
+toggle_button = Gtk.ToggleButton("Drops")
+
 
 # Create a button to generate the Rothe diagram
 button = Gtk.Button("Rothe")
@@ -38,6 +50,8 @@ vbox = Gtk.Box(:v)
 
 push!(hbox, label)
 push!(hbox, entry)
+push!(hbox, toggle_button)
+
 push!(vbox, hbox)
 push!(vbox, button)
 push!(vbox, action_grid)
@@ -48,10 +62,17 @@ push!(vbox, action_grid)
 current_bpd = Matrix{Any}(nothing,5,4)
 
 # Create an array to keep track of the widgets added to the grid
-grid_children = Matrix{Any}(nothing,5,4)
+grid_children = falses(5,4)
 
 # Create an array to keep track of images
 images = Matrix{Any}(undef,5,4)
+
+
+# Tell the toggle button to display its state
+signal_connect(toggle_button, "toggled") do widget
+    is_flat = get_gtk_property(widget, :active, Bool)
+    set_gtk_property!(widget, :label, is_flat ? "Drops" : "Droops")
+end
 
 
 # Connect the "Rothe" button to the action
@@ -59,9 +80,9 @@ signal_connect(button, "clicked") do widget
 
     for i=1:5
       for j=1:4
-        if grid_children[i,j] != nothing
+        if grid_children[i,j]
           delete!(action_grid[i,j],images[i,j])
-          grid_children[i,j] = nothing
+          grid_children[i,j] = false
           current_bpd[i,j] = nothing
         end
       end
@@ -86,7 +107,7 @@ signal_connect(button, "clicked") do widget
     set_gtk_property!(image, :file, tmp_filename)
     rm(tmp_filename)
 
-    grid_children[1,1] = 1
+    grid_children[1,1] = true
     images[1,1] = image
 
 
@@ -101,11 +122,13 @@ end
 for i=1:5
   for j=1:4
 
-# Connect a "button-press-event" to the Gtk.EventBox
+# Connect a "button-press-event" to each Gtk.EventBox
 signal_connect(action_grid[i,j], "button-press-event") do widget, event
 
     if current_bpd[i,j] != nothing  # Check if a bpd has been generated
-        bpds = flat_droops(current_bpd[i,j])
+        is_flat = get_gtk_property( toggle_button, :active, Bool )
+
+        bpds = is_flat ? flat_drops(current_bpd[i,j]) : all_droops(current_bpd[i,j])
         num_images = minimum([length(bpds),20])
         
         # Compute the size dynamically based on the number of images
@@ -122,9 +145,9 @@ signal_connect(action_grid[i,j], "button-press-event") do widget, event
 
     for i=1:5
       for j=1:4
-        if grid_children[i,j] != nothing
+        if grid_children[i,j]
           delete!(action_grid[i,j],images[i,j])
-          grid_children[i,j]=nothing
+          grid_children[i,j]=false
           current_bpd[i,j]=nothing
         end
       end
@@ -140,7 +163,7 @@ signal_connect(action_grid[i,j], "button-press-event") do widget, event
             set_gtk_property!(img, :file, fn)
             push!(action_grid[i,j], img)
             images[i,j]=img
-            grid_children[i,j]=1
+            grid_children[i,j]=true
             current_bpd[i,j]=bpds[k]
             rm(fn)  # Remove the temporary file
            end

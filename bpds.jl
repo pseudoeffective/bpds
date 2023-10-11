@@ -1,3 +1,6 @@
+# Tools for generating BPDs in Julia
+# David Anderson, October 2023.
+
 using Memoization
 
 function Rothe(w)
@@ -78,7 +81,7 @@ end
 # to generate bpds by drooping from flats, need to allow larger droops.
 # can have "%" on SW or NE corners of rectangle.
 
-function can_flat_droop(bpd,i1,j1,i2,j2)
+function can_flat_drop(bpd,i1,j1,i2,j2)
 
  # check bounds
     if i2<i1+1 || j2<j1+1
@@ -270,7 +273,7 @@ function all_droops(bpd)
 end
 
 
-function flat_droops(bpd)
+function flat_drops(bpd)
    local n=size(bpd)[1]
 
    local dps = Vector{Matrix}([])
@@ -279,7 +282,7 @@ function flat_droops(bpd)
      for j1=1:n-1
        for i2=i1+1:n
           for j2=j1+1:n
-            if can_flat_droop(bpd,i1,j1,i2,j2)
+            if can_flat_drop(bpd,i1,j1,i2,j2)
               bpd2=flatten(droop(bpd,i1,j1,i2,j2))
               push!(dps,bpd2)
             end
@@ -441,7 +444,7 @@ function flat_below(bpd)
 
  # assumes bpd is flat
 
-   local dps=flat_droops(bpd)
+   local dps=flat_drops(bpd)
 
    if length(dps)==0
      return [bpd]
