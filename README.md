@@ -14,9 +14,9 @@ The "Droops/Drops" toggle button determines which operation is triggered by clic
 
 Here are some screenshots.
 
-<img src="https://github.com/pseudoeffective/bpds/assets/62109185/b4db5a87-b1b2-4c6c-ba16-c34730012840" height="400">
-<img src="https://github.com/pseudoeffective/bpds/assets/62109185/1eaea7ba-7b47-44b3-9bb7-446d19667f08" height="400">
-<img src="https://github.com/pseudoeffective/bpds/assets/62109185/6643d370-3313-4ec1-b0b4-3072ab90acb3" height="400">
+<img src="https://github.com/pseudoeffective/bpds/blob/main/Rothe.jpg" height="400">
+<img src="https://github.com/pseudoeffective/bpds/blob/main/Drops.jpg" height="400">
+<img src="https://github.com/pseudoeffective/bpds/blob/main/Droops.jpg" height="400">
 
 Have fun!
 
