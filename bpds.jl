@@ -484,6 +484,20 @@ function flats(w)
 end
 
 
+function drift_class(w,bpd)
+
+  local bflat=flatten(bpd)
+
+  dr = []
+  
+  for b in all_bpds(w)
+    if flatten(b)==bflat
+      push!(dr,b)
+    end
+  end
+
+  return dr
+end
 
 function tableau_components(bpd)
 # return labelled tableaux for a flat bpd
@@ -496,43 +510,69 @@ function tableau_components(bpd)
 
   local lyds=Vector{Vector}([])
 
+  local corners=Vector{Tuple{Int,Int}}([])
+
   for i=1:n
     for j=1:n
-      if bpd[i,j]=="O" && ((i,j)==(1,1) || (i>1 && j>1 &&bpd[i-1,j-1]=="+"))
+      if !( (i,j) in corners) && bpd[i,j]=="O" && ((i,j)==(1,1) || (i>1 && j>1 &&bpd[i-1,j-1]=="+")) #find a new NW corner
+        push!(corners,(i,j))
+
         local la=Vector{Int}([])
+        local mu=Vector{Int}([])
         local rr=Vector{Int}([])
+
         local s=0
         while bpd[i+s,j]=="O"
+
           local k=0
-            while bpd[i+s,j+k]=="O"
-              k +=1
-            end
+          while bpd[i+s,j+k]=="O"  # find SE boxes
+            k +=1
+          end          
           push!(la,k)
+
           local el=1
-            while bpd[i+s+el,j+k-1+el]=="%"
+            while bpd[i+s+el,j+k-1+el]=="%" || bpd[i+s+el,j+k-1+el]=="|"
               el +=1
             end
           push!(rr,el-1)
+
+
+          local kk=0
+          while j-kk-1>0 && bpd[i+s,j-kk-1]=="O"  # find skew boxes
+            kk +=1
+          end
+
+          mu=mu+fill(kk,length(mu))
+          la=la+fill(kk,length(la))
+          push!(mu,0)
+
+          if s>0 && i+s>1 && j-kk>1 && bpd[i+s-1,j-kk-1]=="+"
+            push!(corners,(i+s,j-kk) ) # record new corner
+          end
+          j=j-kk
           s +=1
         end
 
+#=
         for k=length(la):-1:2
           if la[k-1]==la[k]
             rr[k-1]=rr[k]
           end
         end
+=#
 
-        push!(lyds,[la,rr,[i-1,j-1]])
+        push!(lyds,[la,rr,mu,[i-1,j-1]])
 
       end
     end
   end
+
   return lyds
 end
 
 
-
 #=
+
 Using Nemo
 
 ######
@@ -556,7 +596,7 @@ function xy_ring(n,m)
   return DoublePolyRing(R,x,y), x, y
 
 end
-=#
+
 
 
 function bpd2bin( bpd, R::DoublePolyRing=xy_ring( size(bpd)[1]-1, size(bpd)[2]-1 )[1]  )
@@ -592,6 +632,19 @@ function bpd2bin( bpd, R::DoublePolyRing=xy_ring( size(bpd)[1]-1, size(bpd)[2]-1
 end
 
 
+function bpds2pol( bpds, R::DoublePolyRing )
+
+  pol=R.ring(0)
+
+  for bp in bpds
+    pol = pol+bpd2bin(bp,R)
+  end
+
+  return(pol)
+
+end
+
+
 function schub_bpd( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1]  )
 # compute schubert pol by bpd formula
   bpds=all_bpds(w)
@@ -607,6 +660,7 @@ function schub_bpd( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1] 
 end
 
 
+
 function bpd2sd( bpd, R::DoublePolyRing=xy_ring( size(bpd)[1]-1, size(bpd)[2]-1 )[1]  )
 # compute drift class polynomial from flat bpd
   if !is_flat(bpd)
@@ -619,7 +673,7 @@ function bpd2sd( bpd, R::DoublePolyRing=xy_ring( size(bpd)[1]-1, size(bpd)[2]-1 
 
   for tt in tcomps
     tt[2] = tt[2]+collect(1:length(tt[2]))
-    sd = sd*schur_poly( tt[1], tt[2], R; xoffset=tt[3][1], yoffset=tt[3][2] )
+    sd = sd*schur_poly( tt[1], tt[2], R; mu=tt[3], xoffset=tt[4][1], yoffset=tt[4][2], rowmin=true )
   end
 
   return sd
@@ -642,7 +696,8 @@ function schub_flats( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1
 
 end
 
-#=
+=#
+
 
 # graphics
 using Plots
@@ -664,9 +719,9 @@ function draw_nw_elbow_curve(x1, y1, x3, y3)
 end
 
 
-function draw_bpd(B,fn)
+function draw_bpd(B,fn; img_size=(300,300))
     n, m = size(B)
-    p = plot(; xlim=(0, n), ylim=(0, n), aspect_ratio=:equal, legend=false, grid=false, framestyle=:none, tick_direction=:none)
+    p = plot(; xlim=(0, n), ylim=(0, m), aspect_ratio=:equal, legend=false, grid=false, framestyle=:none, tick_direction=:none, size=img_size)
     
     for i = 1:n
         for j = 1:n
@@ -708,6 +763,5 @@ function print_flat_bpds(w,fn,fmt)
 end
 
 
-=#
 
 
