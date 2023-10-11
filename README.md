@@ -1,11 +1,11 @@
 # bpds
-julia code for bumpless pipe dreams
+*julia code for bumpless pipe dreams*
 
 This will eventually be bundled into a package for computing Schubert polynomials via drift polynomials and bumpless pipe dreams (BPDs).
 
-For now, "bpds.jl" has functions which create all BPDs of a given permutation w.  It can also create all the *flat* and *sharp* bpds, and perform droop and drop moves.
+For now, "bpds.jl" has functions which create all BPDs of a given permutation.  It can also create all the *flat* and *sharp* bpds, and perform droop and drop moves.
 
-The app "bpd_app.jl" produces an interactive widget which displays BPDs and navigates by droop or drop moves among them, starting with the Rothe BPD.  To use it, open a Julia REPL and type
+The app "bpd_app.jl" produces an interactive widget which displays BPDs and navigates by droop or drop moves among them, starting with the Rothe BPD.  To use it, make sure it is in the same directory as "bpds.jl", and that this directory is accessible to Julia.  Then open a Julia REPL and type
 ```include("bpd_app.jl")```
 
 The "Rothe" button creates the Rothe BPD, and resets the window if other BPDs have been created.
