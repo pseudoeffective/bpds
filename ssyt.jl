@@ -44,7 +44,7 @@ end
 
 
 
-@memoize function ssyt(la, ns; ff = fill(maximum(ns), length(la)), mu = fill(0, length(la)))
+@memoize function ssyt(la, ns; ff = fill(maximum(ns), length(la)), mu = fill(0, length(la)), rowmin=false)
     len = length(la)
     mmu = copy(mu)
     
@@ -95,7 +95,7 @@ end
         la1 = la[1:len-1]
         mu1 = mmu[1:len-1]
         
-        tabs1 = ssyt(la1, ns, ff=ff, mu=mu1)
+        tabs1 = ssyt(la1, ns, ff=ff, mu=mu1, rowmin=rowmin)
         
         if mmu[end] > 0
             tabs2 = []
@@ -109,7 +109,7 @@ end
             tabs2 = []
             for tt in tabs1
                 for k in 1:length(ns)
-                    if ns[k] <= ff[len]
+                    if ns[k] <= ff[len] && (!rowmin || (rowmin && ns[k]>=len) )
                         t2 = add_tabi(tt, len, ns[k])
                         if t2!=nothing
                           push!(tabs2, t2)
@@ -176,8 +176,8 @@ function tab2bin( tab, RR::DoublePolyRing; xoffset = 0, yoffset = 0 )
         if tt+j-i+yoffset<=m && tt+j-i+yoffset>0
           p=p+y[tt+j-i+yoffset]
         end
+        bin = bin*p
       end
-      bin = bin*p
     end
   end
 
@@ -200,12 +200,12 @@ function ssyt2pol( tabs, RR::DoublePolyRing; xoffset=0, yoffset=0 )
 end
 
 
-function schur_poly( la, ff::Vector{Int}, RR::DoublePolyRing=xy_ring( length(la) , length(la)+la[1] )[1]; mu = fill(0, length(la)), xoffset=0, yoffset=0 )
+function schur_poly( la, ff::Vector{Int}, RR::DoublePolyRing=xy_ring( length(la) , length(la)+la[1] )[1]; mu = fill(0, length(la)), xoffset=0, yoffset=0, rowmin=false )
   if length(la)==0
     return RR.ring(1)
   end
 
-  tbs = ssyt( la, collect(1:maximum(ff)), ff=ff, mu=mu )
+  tbs = ssyt( la, collect(1:maximum(ff)), ff=ff, mu=mu, rowmin=rowmin )
 
   pol = ssyt2pol( tbs, RR; xoffset=xoffset, yoffset=yoffset )
 
@@ -213,14 +213,16 @@ end
 
 
 
-function schur_poly( la, ff::Int, RR::DoublePolyRing=xy_ring( length(la) , length(la)+la[1] )[1]; mu = fill(0, length(la)), xoffset=0, yoffset=0 )
+function schur_poly( la, ff::Int, RR::DoublePolyRing=xy_ring( length(la) , length(la)+la[1] )[1]; mu = fill(0, length(la)), xoffset=0, yoffset=0, rowmin=false )
   if length(la)==0
     return RR.ring(1)
   end
 
-  tbs = ssyt( la, collect(1:ff), ff=fill(ff,ff), mu=mu )
+  schur_poly( la, fill(ff,ff), RR; mu = mu, xoffset=xoffset, yoffset=yoffset, rowmin=rowmin )
 
-  pol = ssyt2pol( tbs, RR; xoffset=xoffset, yoffset=yoffset )
+#  tbs = ssyt( la, collect(1:ff), ff=fill(ff,ff), mu=mu )
+
+#  pol = ssyt2pol( tbs, RR; xoffset=xoffset, yoffset=yoffset )
 
 end
 
