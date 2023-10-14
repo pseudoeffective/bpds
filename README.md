@@ -1,7 +1,7 @@
 # bpds
 *julia code for bumpless pipe dreams*
 
-This will eventually be bundled into a package for computing Schubert polynomials via drift polynomials and bumpless pipe dreams (BPDs).
+This will eventually be bundled into a package for computing Schubert polynomials via drift polynomials and bumpless pipe dreams (BPDs).  These are gadgets which enumerate terms in Schubert polynomials, developed by [Lam-Lee-Shimozono](https://arxiv.org/abs/1806.11233).
 
 For now, "BpdBase.jl" has functions which create all BPDs of a given permutation.  It can also create all the *flat* and *sharp* bpds, and perform droop and drop moves.
 
