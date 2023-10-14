@@ -96,6 +96,10 @@ function schub_bpd( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1] 
 end
 
 
+#=
+######
+# TO DO: fix the functions below, currently disabled
+######
 
 function bpd2sd( bpd, R::DoublePolyRing=xy_ring( size(bpd)[1]-1, size(bpd)[2]-1 )[1]  )
 # compute drift class polynomial from flat bpd
@@ -132,3 +136,4 @@ function schub_flats( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1
 
 end
 
+=#
