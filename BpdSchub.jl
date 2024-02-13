@@ -4,8 +4,10 @@
 
 #Using Nemo
 
-include("ssyt.jl")
+#include("ssyt.jl")
+include("SSYT.jl")
 include("BpdBase.jl")
+include("Drifts.jl")
 
 #=
 #These are currently loaded in ssyt.jl
@@ -35,11 +37,11 @@ end
 ######
 
 
-function bpd2bin( bpd, R::DoublePolyRing=xy_ring( size(bpd)[1]-1, size(bpd)[2]-1 )[1]  )
+function bpd2bin( bpd, R::DoublePolyRing=xy_ring( size(bpd.m)[1]-1, size(bpd.m)[2]-1 )[1]  )
 # product of binomials for bpd
 # requires DoublePolyRing
 # can get single polyn by using no y_vars
-  local n=size(bpd)[1]-1
+  local n=size(bpd.m)[1]-1
   bin = R.ring(1)
 
   x = R.x_vars
@@ -50,7 +52,7 @@ function bpd2bin( bpd, R::DoublePolyRing=xy_ring( size(bpd)[1]-1, size(bpd)[2]-1
 
   for i=1:n
     for j=1:n
-      if bpd[i,j]=="O"
+      if bpd.m[i,j]==0
         p=R.ring(0)
         if i<=aa
           p=p+x[i]
@@ -69,6 +71,7 @@ end
 
 
 function bpds2pol( bpds, R::DoublePolyRing )
+# form polynomial from collection of bpds
 
   pol=R.ring(0)
 
@@ -96,23 +99,45 @@ function schub_bpd( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1] 
 end
 
 
-#=
-######
-# TO DO: fix the functions below, currently disabled
-######
 
-function bpd2sd( bpd, R::DoublePolyRing=xy_ring( size(bpd)[1]-1, size(bpd)[2]-1 )[1]  )
-# compute drift class polynomial from flat bpd
-  if !isflat(bpd)
-    return 0
+
+function schub_flats( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1] )
+# compute schubert pol by drift class formula
+
+  fbpds = flat_bpds(w)
+
+  pol = R.ring(0)
+
+  for b in fbpds
+    b=markconfig(b)
+    pol = pol+dc2sd(b,R)
+  end
+
+  return pol
+
+end
+
+
+function dc2sd( dc::Drift, R::DoublePolyRing=xy_ring( size(dc.m)[1]-1, size(dc.m)[2]-1 )[1]  )
+# drift config to s-polynomial
+# must take marked config as input
+
+  local n=size(dc.m)[1]
+
+  for k=2*n:-1:2
+    for i=maximum([1,k-n]):minimum([n,k-1])
+      if isa( dc.m[i,k-i], Tuple ) && dc.m[i,k-i][2]
+        (dc1,dc2)=drift_split( dc, i, k-i )
+        return ( dc2sd( dc1, R ) + dc2sd( dc2, R ) )
+      end
+    end
   end
 
   sd = R.ring(1)
 
-  tcomps = tableau_components(bpd)
+  tcomps = tableau_components(dc)
 
   for tt in tcomps
-    tt[2] = tt[2]+collect(1:length(tt[2]))
     sd = sd*schur_poly( tt[1], tt[2], R; mu=tt[3], xoffset=tt[4][1], yoffset=tt[4][2], rowmin=true )
   end
 
@@ -121,19 +146,86 @@ function bpd2sd( bpd, R::DoublePolyRing=xy_ring( size(bpd)[1]-1, size(bpd)[2]-1 
 end
 
 
-function schub_flats( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1] )
-# drift class formula
+function tableau_components(dc)
+# return labelled tableaux for a drift config dc
 
-  fbpds = flat_bpds(w)
+  local n=size(dc.m)[1]
 
-  pol = R.ring(0)
-
-  for b in fbpds
-    pol = pol+bpd2sd(b,R)
+  if !isflat(dc)
+    return( tableau_components( nw_reset(dc) ) )
   end
 
-  return pol
+  local lyds=Vector{Vector}([])
 
+  local corners=Vector{Tuple{Int,Int}}([])
+
+  for i=1:n
+    for j=1:n
+        if !( (i,j) in corners) && isa(dc.m[i,j],Tuple) && ((i,j)==(1,1) || (i>1 && j>1 && !isa( dc.m[i-1,j], Tuple) && !isa( dc.m[i,j-1],Tuple )  )) #find a new NW corner
+        push!(corners,(i,j))
+
+        local la=Vector{Int}([])
+        local mu=Vector{Int}([])
+        local rr=Vector{Int}([])
+
+        local s=0
+        while isa( dc.m[i+s,j], Tuple )
+
+          local k=0
+          while isa( dc.m[i+s,j+k], Tuple )  # find SE boxes
+            k +=1
+          end          
+          push!(la,k)
+
+
+          local kk=0
+          while j-kk-1>0 && isa( dc.m[i+s,j-kk-1], Tuple )  # find skew boxes
+            kk +=1
+          end
+
+          mu=mu+fill(kk,length(mu))
+          la=la+fill(kk,length(la))
+          push!(mu,0)
+
+          if s>0 && i+s>1 && j-kk>1 && ( dc.m[i+s-1,j-kk-1]==1 || dc.m[i+s-1,j-kk-1]==9 || dc.m[i+s-1,j-kk-1]==6  )
+            push!(corners,(i+s,j-kk) ) # record new corner
+          end
+          j=j-kk
+          s +=1
+        end
+
+        rr=Vector{Vector{Int}}([])
+        for el=1:length(la)
+          push!(rr, fill(0,mu[el]) )
+          for mm=mu[el]+1:la[el]
+            push!(rr[end], dc.m[i-1+el,j-1+mm][1]+el )
+          end
+        end
+
+        push!(lyds,[la,rr,mu,[i-1,j-1]])
+
+      end
+    end
+  end
+
+  return lyds
 end
 
-=#
+
+
+
+################
+# IN DEVELOPMENT
+################
+
+
+# difference operator (not used)
+function ddx(p,i)
+# p is a polynomial in x=[x1,x2,..], assumed at least i+1 variables.
+  local p1 = evaluate( p, [x[i],x[i+1]], [x[i+1],x[i]] )
+
+  local q=divrem( p-p1, x[i]-x[i+1] )[1]
+
+  return q
+
+end
