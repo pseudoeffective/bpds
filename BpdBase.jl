@@ -1,11 +1,37 @@
 # Tools for generating BPDs in Julia
-# David Anderson, 11 February 2024.
+# David Anderson, 29 February 2024.
 
 
 
 #############
 # BPD type and constructors
 
+
+"""
+    BPD
+
+A type for bumpless pipe dreams
+
+## Structure
+
+A BPD `b` has one field, `b.m`, which is a Matrix{Int8}.  The entries are integers 0-5 which encode the six possible tiles as follows:
+
+   `O` <-> `0`
+
+   `+` <-> `1`
+
+   `/` <-> `2` (r-elbow)
+
+   `%` <-> `3` (j-elbow)
+
+   `|` <-> `4`
+
+   `-` <-> `5`
+
+## Constructor
+
+The function `BPD(m)` takes as its argument `m` either a matrix with entries of type Int8 (with values 0-5) or of type String (with the six possible tiles).
+"""
 struct BPD
     m::Matrix{Int8}
 end
@@ -29,7 +55,7 @@ end
 # convert integers back to symbols for display
 function int_to_symbol(i::Int8)
     symbols = ['O', '+', '/', '%', '|', '-']
-    return symbols[i+1]  # assuming integers 0-5 map to symbols
+    return symbols[i+1]  # integers 0-5 map to symbols
 end
 
 
@@ -46,15 +72,39 @@ function Base.show(io::IO, bpd::BPD)
 end
 
 
+
+"""
+    Rothe(w)
+
+Construct the Rothe BPD for a permutation
+
+## Argument
+`w::Vector{Int}`: A permutation
+
+## Returns
+`BPD`: The Rothe bumpless pipe dream for `w`.
+
+## Example
+
+```julia
+# Produce the BPD
+w = [1,4,5,3,2]
+
+b = Rothe(w)
+
+# View the integer matrix which is stored
+b.m
+```
+"""
 function Rothe(w)
- # construct the Rothe BPD for w
         local n=length(w)
+        local m=minimum(w)
         local r=Matrix{String}(undef,n,n)
 
              for j = 1:n
-                if j<w[1]
+                if j+m-1<w[1]
                    r[1,j]="O"
-                elseif j==w[1]
+                elseif j+m-1==w[1]
                    r[1,j]="/"
                 else
                    r[1,j]="-"
@@ -63,13 +113,13 @@ function Rothe(w)
 
              for i=2:n
                for j=1:n
-                 if j<w[i]
+                 if j+m-1<w[i]
                    if r[i-1,j]=="/" || r[i-1,j]=="|" || r[i-1,j]=="+"
                       r[i,j]="|"
                    else
                       r[i,j]="O"
                    end
-                 elseif j==w[i]
+                 elseif j+m-1==w[i]
                    r[i,j]="/"
                  else
                    if r[i-1,j]=="|" || r[i-1,j]=="/" || r[i-1,j]=="+"
@@ -97,20 +147,20 @@ function can_droop(bpd,i1,j1,i2,j2)
     end
 
  # check NW and SE corners
-    if bpd.m[i1,j1] != 2 || bpd.m[i2,j2] != 0
+    if (bpd.m[i1,j1],bpd.m[i2,j2])  != (2,0)
       return(false)
     end
 
  # check N and S borders
     for j=j1+1:j2
-       if bpd.m[i1,j]==2 || bpd.m[i2,j]==2 || bpd.m[i1,j]==3 || bpd.m[i2,j]==3
+       if bpd.m[i1,j] in [2,3] || bpd.m[i2,j] in [2,3]
          return(false)
        end
     end
 
  # check W and E borders
     for i=i1+1:i2
-       if bpd.m[i,j1]==2 || bpd.m[i,j2]==2 || bpd.m[i,j1]==3 || bpd.m[i,j2]==3
+       if bpd.m[i,j1] in [2,3] || bpd.m[i,j2] in [2,3]
          return(false)
        end
     end
@@ -118,7 +168,7 @@ function can_droop(bpd,i1,j1,i2,j2)
  # check inside of rectangle
     for i=i1+1:i2-1
       for j=j1+1:j2-1
-        if bpd.m[i,j] == 2 || bpd.m[i,j]==3
+        if bpd.m[i,j] in [2,3]
           return(false)
         end
       end
@@ -143,20 +193,20 @@ function can_flat_drop(bpd,i1,j1,i2,j2)
     end
 
  # check corners
-    if bpd.m[i1,j1] != 2 || bpd.m[i2,j2] != 0
+    if (bpd.m[i1,j1],bpd.m[i2,j2]) != (2,0)
       return(false)
     end
 
  # check N and S borders
     for j=j1+1:j2-1
-       if bpd.m[i1,j]==2 || bpd.m[i2,j]==2 || bpd.m[i1,j]==3 || bpd.m[i2,j]==3 || bpd.m[i1,j]==0 || bpd.m[i2,j]==0
+       if bpd.m[i1,j] in [2,3,0] || bpd.m[i2,j] in [2,3,0]
          return(false)
        end
     end
 
  # check W and E borders
     for i=i1+1:i2-1
-       if bpd.m[i,j1]==2 || bpd.m[i,j2]==2 || bpd.m[i,j1]==3 || bpd.m[i,j2]==3 || bpd.m[i,j1]==0 || bpd.m[i,j2]==0
+       if bpd.m[i,j1] in [2,3,0] || bpd.m[i,j2] in [2,3,0]
          return(false)
        end
     end
@@ -164,7 +214,7 @@ function can_flat_drop(bpd,i1,j1,i2,j2)
  # check interior
     for i=i1+1:i2-1
       for j=j1+1:j2-1
-        if bpd.m[i,j] == 2 || bpd.m[i,j]==3 || bpd.m[i,j]==0
+        if bpd.m[i,j] in [2,3,0]
           return(false)
         end
       end
@@ -178,26 +228,87 @@ end
 function can_drip(bpd,i1,j1)
 
  # check corners
-    if bpd.m[i1+1,j1+1] != 0
+    if (bpd.m[i1,j1], bpd.m[i1+1,j1+1]) != (2,0)
       return(false)
     end
 
-    if bpd.m[i1,j1] == 0 || bpd.m[i1,j1] == 1
+    if !(bpd.m[i1,j1+1] in [3,5])
       return(false)
     end
 
-    if bpd.m[i1,j1+1] == 0 || bpd.m[i1,j1+1] == 1
+    if !(bpd.m[i1+1,j1] in [3,4])
       return(false)
     end
-
-    if bpd.m[i1+1,j1] == 0 || bpd.m[i1+1,j1] == 1
-      return(false)
-    end
-
 
   return(true)
 
 end
+
+# K-theory version
+function can_Kdroop(bpd,i1,j1,i2,j2)
+
+ # check rectangle bounds
+    if i2<i1+1 || j2<j1+1
+       return(false)
+    end
+
+ # check NW and SE corners
+    if (bpd.m[i1,j1],bpd.m[i2,j2]) != (2,3)
+      return(false)
+    end
+
+ # check NE and SW corners
+    if !( (bpd.m[i1,j2],bpd.m[i2,j1]) in [(1,4), (5,1)] )
+      return false
+    end
+
+ # check N and W borders
+    for j=j1+1:j2-1
+       if bpd.m[i1,j]!=1 && bpd.m[i1,j]!=5
+         return(false)
+       end
+    end
+    for i=i1+1:i2-1
+       if bpd.m[i,j1]!=1 && bpd.m[i,j1]!=4
+         return(false)
+       end
+    end
+
+ # check S and E borders
+    aa=0
+    for j=j1+1:j2-1
+       if bpd.m[i2,j]==3
+         return(false)
+       end
+       if bpd.m[i2,j]==2
+         aa+=1
+         if aa>1 return(false) end
+       end
+    end
+
+    for i=i1+1:i2-1
+       if bpd.m[i,j2]==3
+         return(false)
+       end
+       if bpd.m[i,j2]==2
+         aa+=1
+         if aa>1 return(false) end
+       end
+    end
+
+ # check inside of rectangle
+    for i=i1+1:i2-1
+      for j=j1+1:j2-1
+        if bpd.m[i,j] in [2,3]
+          return(false)
+        end
+      end
+    end
+  return(true)
+end
+
+
+
 
 
 function droop(bpd,i1,j1,i2,j2)
@@ -236,7 +347,6 @@ function droop(bpd,i1,j1,i2,j2)
        end
     end
 
-
     # set east edge
     for i=i1+1:i2-1
        if bpd2[i,j2]==0
@@ -259,8 +369,98 @@ function droop(bpd,i1,j1,i2,j2)
 end
 
 
-function all_droops(bpd)
+
+function Kdroop(bpd,i1,j1,i2,j2)
+ # assumes can_[flat_]Kdroop==true
+    
+    local bpd2=deepcopy(bpd.m)
+    # set corners of rectangle
+    bpd2[i1,j1]=0
+    bpd2[i2,j2]=3
+    if bpd2[i1,j2]==5
+      bpd2[i1,j2]=2
+    elseif bpd2[i1,j2]==3
+      bpd2[i1,j2]=4
+    end
+    if bpd2[i2,j1]==4
+      bpd2[i2,j1]=2
+    elseif bpd2[i2,j1]==3
+      bpd2[i2,j1]=5
+    end
+
+    # set east edge
+    ii=i2
+    for i=i1+1:i2-1
+       if bpd2[i,j2]==0
+          bpd2[i,j2]=4
+       elseif bpd2[i,j2]==5
+          bpd2[i,j2]=1
+       elseif bpd2[i,j2]==2
+          bpd2[i,j2]=1
+          ii=i
+       end
+    end
+
+    # set south edge
+    jj=j2
+    for j=j1+1:j2-1
+       if bpd2[i2,j]==0
+          bpd2[i2,j]=5
+       elseif bpd2[i2,j]==4
+          bpd2[i2,j]=1
+       elseif bpd2[i2,j]==2
+          bpd2[i2,j]=1
+          jj=j
+       end
+    end
+
+    # set west edge
+    for i=i1+1:min(ii,i2)-1
+       if bpd2[i,j1]==4
+          bpd2[i,j1]=0
+       elseif bpd2[i,j1]==1
+          bpd2[i,j1]=5
+       end
+    end
+    # straighten bottom pipe
+    if ii<i2
+      bpd2[ii,j1]=2
+      for j=j1+1:j2-1
+        if bpd2[ii,j]==0
+          bpd2[ii,j]=5
+        elseif bpd2[ii,j]==4
+          bpd2[ii,j]=1
+        end
+      end
+    end
+
+    # set north edge
+    for j=j1+1:min(jj,j2)-1
+       if bpd2[i1,j]==5
+          bpd2[i1,j]=0
+       elseif bpd2[i1,j]==1
+          bpd2[i1,j]=4
+       end
+    end
+    # straighten bottom pipe
+    if jj<j2
+      bpd2[i1,jj]=2
+      for i=i1+1:i2-1
+        if bpd2[i,jj]==0
+          bpd2[i,jj]=4
+        elseif bpd2[i,jj]==5
+          bpd2[i,jj]=1
+        end
+      end
+    end
+
+    return(BPD(bpd2))
+end
+
+
+
 # produce all droops of bpd
+function all_droops(bpd)
    local n=size(bpd.m)[1]
 
    local dps = []
@@ -282,8 +482,8 @@ function all_droops(bpd)
 end
 
 
-function flat_drops(bpd)
 # produce all (flat) drops of bpd
+function flat_drops(bpd)
    local n=size(bpd.m)[1]
 
    local dps = []
@@ -305,8 +505,8 @@ function flat_drops(bpd)
 end
 
 
-function all_drips(bpd)
 # produce all drips of bpd
+function all_drips(bpd)
    local n=size(bpd.m)[1]
 
    local dps = []
@@ -324,6 +524,38 @@ function all_drips(bpd)
 end
 
 
+# produce all Kdroops of bpd
+function all_Kdroops(bpd)
+   local n=size(bpd.m)[1]
+
+   local dps = []
+
+   for i1=1:n-1
+     for j1=1:n-1
+       for i2=i1+1:n
+          for j2=j1+1:n
+            if can_droop(bpd,i1,j1,i2,j2)
+              local bpd2=droop(bpd,i1,j1,i2,j2)
+              push!(dps,bpd2.m)
+            end
+            if can_Kdroop(bpd,i1,j1,i2,j2)
+              local bpd2=Kdroop(bpd,i1,j1,i2,j2)
+              if !(bpd2.m in dps)
+                push!(dps,bpd2.m)
+              end
+            end
+          end
+       end
+     end
+   end
+
+   return(map(BPD,dps))
+end
+
+
+
+
+
 ###############
 # iterator generating all BPDs for w
 
@@ -334,7 +566,7 @@ end
 
 
 function AllBelowIterator(bpd::BPD)
-    # Initialize with the first element
+    # initialize with the first element
     seen = Set([bpd.m])
     droops = all_droops(bpd)
     stack = [(bpd, droops)]
@@ -360,10 +592,43 @@ function Base.iterate(iter::AllBelowIterator, state=nothing)
         return( current, isempty(iter.stack) ? nothing : iter.stack[end] )
     end
 
-    return nothing  # End of iteration
+    return nothing  # end of iteration
 end
 
 
+
+"""
+    all_bpds(w)
+
+An iterator generating all reduced BPDs for a permutation `w`
+
+## Argument
+`w::Vector{Int}`: a permutation
+
+## Returns
+`AllBelowIterator`: an iterator type generating all reduced BPDs for `w`.
+
+## Examples
+
+```julia
+# Define the iterator
+w = [1,4,5,3,2]
+
+bps = all_bpds(w);
+
+# Run a loop over the iterator
+
+for b in bps println(b) end;
+
+# To reset the iterator, define it again
+
+bps = all_bpds(w)
+
+# Form a vector of all BPDs for w
+
+bpds = collect(bps)
+```
+"""
 function all_bpds(w)
     local bpd = Rothe(w)
     iter = AllBelowIterator(bpd)
@@ -373,10 +638,89 @@ end
 
 
 ##########
+# iterator generating all K-BPDs for w
+
+struct AllKBelowIterator
+    stack::Vector{Any}
+    seen::Set{Matrix}
+end
 
 
-function isflat(bpd)
+function AllKBelowIterator(bpd::BPD)
+    # Initialize with the first element
+    seen = Set([bpd.m])
+    droops = all_Kdroops(bpd)
+    stack = [(bpd, droops)]
+    return AllKBelowIterator(stack,seen)
+end
+
+
+Base.IteratorSize(::Type{<:AllKBelowIterator}) = Base.SizeUnknown()
+
+
+function Base.iterate(iter::AllKBelowIterator, state=nothing)
+
+    while !isempty(iter.stack)
+        current, droops = pop!(iter.stack)
+
+        unseen_droops = filter( b -> !(b.m in iter.seen), droops )
+
+        for b in unseen_droops
+          push!(iter.seen, b.m)  # mark new droop as seen
+          push!( iter.stack, (b, all_Kdroops(b)) )
+        end
+
+        return( current, isempty(iter.stack) ? nothing : iter.stack[end] )
+    end
+
+    return nothing  # End of iteration
+end
+
+
+
+"""
+    all_Kbpds(w)
+
+An iterator generating all BPDs for a permutation `w`, including non-reduced K-theoretic ones
+
+## Argument
+`w::Vector{Int}`: a permutation
+
+## Returns
+`AllKBelowIterator`: an iterator type generating all BPDs for `w`.
+
+## Examples
+```julia
+# Define the iterator
+w = [1,4,5,3,2]
+
+bps = all_Kbpds(w);
+
+# Run a loop over the iterator
+
+for b in bps println(b) end;
+
+# To reset the iterator, define it again
+
+bps = all_Kbpds(w)
+
+# Form a vector of all BPDs for w
+
+bpds = collect(bps)
+```
+"""
+function all_Kbpds(w)
+    local bpd = Rothe(w)
+    iter = AllKBelowIterator(bpd)
+
+    return iter
+end
+
+#######
+
+
 # determine if bpd is flat
+function isflat(bpd)
    local n=size(bpd.m)[1]
 
    for i=2:n-1
@@ -390,8 +734,8 @@ function isflat(bpd)
 end
 
 
-function makeflat(bpd)
 # returns flat bpd in drift class of bpd
+function makeflat(bpd)
    local n=size(bpd.m)[1]
 
    for i=2:n-1
@@ -406,6 +750,7 @@ function makeflat(bpd)
    return(bpd)   
 
 end   
+ 
 
 
 #############
@@ -418,7 +763,7 @@ end
 
 
 function FlatBelowIterator(bpd::BPD)
-    # Initialize with the first element
+    # initialize with the first element
     seen = Set([makeflat(bpd).m])
     drops = flat_drops(makeflat(bpd))
     stack = [(makeflat(bpd), drops)]
@@ -445,11 +790,41 @@ function Base.iterate(iter::FlatBelowIterator, state=nothing)
         return( makeflat(current), isempty(iter.stack) ? nothing : iter.stack[end] )
     end
 
-    return nothing  # End of iteration
+    return nothing  # end of iteration
 end
 
 
+"""
+    flat_bpds(w)
 
+An iterator generating all flat reduced BPDs for a permutation `w`
+
+## Argument
+`w::Vector{Int}`: a permutation
+
+## Returns
+`FlatBelowIterator`: an iterator type generating all flat reduced BPDs for `w`.
+
+## Examples
+```julia
+# Define the iterator
+w = [1,4,5,3,2]
+
+fbps = flat_bpds(w);
+
+# Run a loop over the iterator
+
+for b in fbps println(b) end;
+
+# To reset the iterator, define it again
+
+fbps = flat_bpds(w)
+
+# Form a vector of flat BPDs for w
+
+fbpds = collect(fbps)
+```
+"""
 function flat_bpds(w)
     local bpd = Rothe(w)
     iter = FlatBelowIterator(bpd)
@@ -471,6 +846,32 @@ end
 # Conversions to and from ASMs
 # where to put these functions?
 
+
+"""
+    bpd2asm(b)
+
+Convert a bumpless pipe dream to an alternating sign matrix
+
+## Argument
+`b::BPD`: a bumpless pipe dream
+
+## Returns
+`Matrix`: the alternating sign matrix corresponding to `b`.
+
+## Example
+```julia
+# Generate all reduced BPDs for a permutation
+w = [1,4,5,3,2]
+
+bps = all_bpds(w);
+
+# Construct a vector of the corresponding ASMs
+
+asms = [];
+
+for b in bps push!(asms, bpd2asm(b)) end;
+```
+"""
 function bpd2asm( b::BPD )
 
   local n=size(b.m)[1]
@@ -491,7 +892,43 @@ function bpd2asm( b::BPD )
 end
 
 
+"""
+    asm2bpd(a)
+
+Convert an alternating sign matrix to a bumpless pipe dream
+
+## Argument
+`a::Matrix`: an alternating sign matrix
+
+## Returns
+`BPD`: the corresponding BPD
+
+## Example
+```julia
+# Generate all reduced BPDs for a permutation
+w = [1,4,5,3,2]
+
+bpds = collect(all_bpds(w));
+
+# Convert a BPD to an ASM
+
+b = bpds[7]
+
+a = bpd2asm(b)
+
+# Convert the ASM back to a BPD
+
+b2 = asm2bpd(a)
+
+# The BPD type is sensitive to construction, use b.m to check identity
+
+b == b2
+
+b.m == b2.m
+```
+"""
 function asm2bpd( a )
+# improve this, the rules are not local
 
   local n=size(a)[1]
 
@@ -559,64 +996,22 @@ function asm2bpd( a )
 end
 
 
+function len( w::Vector{Int} )
+# coxeter length of a permutation (or word)
+  n = length(w)
+  a = 0
 
-#########
-# old version of iterator, not used
-#=
-
-struct AllBelowIterator
-    stack::Vector{Any}
-    seen::Set{Matrix}
-    bpd::BPD
-end
-
-
-function AllBelowIterator(bpd::BPD)
-    # Initialize with the first element and an empty set for seen elements
-    return AllBelowIterator([(bpd, all_droops(bpd))], Set([bpd.m]), bpd)
-end
-
-
-Base.IteratorSize(::Type{<:AllBelowIterator}) = Base.SizeUnknown()
-
-
-function Base.iterate(iter::AllBelowIterator, state=nothing)
-
-    if state==nothing
-      return( iter.bpd, true )
+  for i in 1:n-1
+    for j in i+1:n
+      if w[i]>=w[j]
+        a=a+1
+      end
     end
+  end
 
-    while !isempty(iter.stack)
-        current, droops = iter.stack[end]
+  return a
+end    
 
-        if isempty(droops)
-            pop!(iter.stack)  # Remove the exhausted element
-            continue
-        end
-
-        next_bpd = popfirst!(droops)  # Get the next droop to process
-
-        if !in(next_bpd.m, iter.seen)
-            push!(iter.seen, next_bpd.m)  # Mark as seen
-            # Add to stack with its droops
-            push!(iter.stack, (next_bpd, all_droops(next_bpd)))
-            return next_bpd, iter.stack
-        end
-    end
-
-    return nothing  # End of iteration
-end
-
-
-function all_bpds(w)
-    local bpd = Rothe(w)
-    iter = AllBelowIterator(bpd)
-
-    return iter
-end
-
-=#
-#########
 
 ####################
 #not used
