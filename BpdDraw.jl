@@ -42,14 +42,14 @@ end
 
 function draw_bpd(B,fn; img_size=(300,300))
     n, m = size(B.m)
-    p = plot(; xlim=(0, n), ylim=(0, m), aspect_ratio=:equal, legend=false, grid=false, framestyle=:none, tick_direction=:none, size=img_size)
+    p = plot(; xlim=(0, n), ylim=(0, m), aspect_ratio=:equal, legend=false, grid=true, framestyle=:none, tick_direction=:none, size=img_size)
     
     for i = 1:n
         for j = 1:n
             y, x = n-i, j-1  # Transpose and invert the y-coordinate
             tile = B.m[i, j]
             if tile == 0
-                plot!([x, x+1, x+1, x, x], [y, y, y+1, y+1, y], linecolor=:orange, linewidth=0.5, seriestype=:shape, fillalpha=0)
+                plot!([x, x+1, x+1, x, x], [y, y, y+1, y+1, y], linecolor=:orange, linewidth=2, seriestype=:shape, fillalpha=0)
             elseif tile == 1
                 plot!([x+0.5, x+0.5], [y, y+1], linecolor=:blue, linewidth=2)
                 plot!([x, x+1], [y+0.5, y+0.5], linecolor=:blue, linewidth=2)

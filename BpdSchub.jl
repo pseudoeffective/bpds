@@ -9,6 +9,142 @@ include("SSYT.jl")
 include("BpdBase.jl")
 include("Drifts.jl")
 
+
+
+"""
+    schub_poly(w, R; method)
+
+Return the Schubert polynomial for the permutation `w`
+
+## Arguments
+- `w::Vector{Int}`: A permutation
+- `R::DoublePolyRing`: The ambient polynomial ring, with underlying ring `R.ring` and variables `R.x_vars` and `R.y_vars`
+- `method`: An optional argument specifying the algorithm for computing.
+
+The options for `method` are:
+- `method="drift"` (default), computes from flat BPDs by drift class formula
+- `method="bpd"`, computes by summing over all BPDs
+- `method="dd"`, computes by divided differences from longest permutation 
+
+## Returns
+`ZZMPolyRingElem`: the Schubert polynomial in the ring R
+
+## Examples
+```julia
+# Define a single-variable DoublePolyRing
+R,x,y = xy_ring(5,0)
+
+# Choose a permutation
+w = [3,5,1,4,2]
+
+# Compute via drift classes (default)
+pol1 = schub_poly(w, R)
+
+# Compute via divided differences
+pol2 = schub_poly(w, R, method="dd")
+
+pol1==pol2
+```
+
+### If there are not enough x-variables to compute by descending induction, the "dd" method throws an error
+```julia
+R,x,y = xy_ring(3,0);
+
+schub_poly(w, R, method="dd");
+
+```
+
+### If R is not specified, a double polynomial ring containing the double Schubert polynomial is chosen
+
+```julia
+pol3 = schub_poly(w, method="bpd");
+
+R,x,y = xy_ring(4,4);
+
+pol4 = schub_poly(w, R, method="drift");
+
+pol3==pol4
+```
+"""
+function schub_poly(w, R::DoublePolyRing=xy_ring( max(length(w)-1,1), max(length(w)-1,1) )[1]; method="drift" )
+
+  if method=="dd"
+    return schub_dd(w,R)
+  elseif method=="bpd"
+    return schub_bpd(w,R)
+  end
+
+  return schub_drifts(w,R)
+
+end
+
+
+## TO DO: Add "transition" method for schub_poly
+
+
+"""
+    groth_poly(w, R; method)
+
+Return the Grothendieck polynomial for the permutation `w`
+
+## Arguments
+- `w::Vector{Int}`: A permutation
+- `R::DoublePolyRing`: The ambient polynomial ring, with underlying ring `R.ring` and variables `R.x_vars` and `R.y_vars`
+- `method`: An optional argument specifying the algorithm for computing.
+
+The options for `method` are:
+- `method="bpd"` (default), computes by summing over all BPDs
+- `method="dd"`, computes by divided differences from longest permutation 
+
+## Returns
+`ZZMPolyRingElem`: the Grothendieck polynomial in the ring R
+
+## Examples
+```julia
+# Define a single-variable DoublePolyRing
+R,x,y = xy_ring(5,0)
+
+# Choose a permutation
+w = [3,5,1,4,2]
+
+# Compute via bpds (default)
+pol1 = groth_poly(w, R)
+
+# Compute via divided differences
+pol2 = groth_poly(w, R, method="dd")
+
+pol1==pol2
+```
+### If R is not specified, a double polynomial ring containing the double Schubert polynomial is chosen
+
+```julia
+pol3 = groth_poly(w, method="bpd");
+
+R,x,y = xy_ring(4,4);
+
+pol4 = groth_poly(w, R, method="dd");
+
+pol3==pol4
+```
+"""
+function groth_poly(w, R::DoublePolyRing=xy_ring( max(length(w)-1,1), max(length(w)-1,1) )[1]; method="bpd" )
+
+  if method=="dd"
+    return groth_dd(w,R)
+  elseif method=="drift"
+    return groth_drifts(w,R)
+  end
+
+  return groth_bpd(w,R)
+
+end
+
+
+## TO DO: add "transition" method for groth_poly
+## TO DO: figure out "drift" method for groth_poly
+
+
+
 #=
 #These are currently loaded in ssyt.jl
 ######
@@ -37,7 +173,7 @@ end
 ######
 
 
-function bpd2bin( bpd, R::DoublePolyRing=xy_ring( size(bpd.m)[1]-1, size(bpd.m)[2]-1 )[1]  )
+function bpd2bin( bpd, R::DoublePolyRing=xy_ring( size(bpd.m)[1]-1, size(bpd.m)[2]-1 )[1]; version="schub"  )
 # product of binomials for bpd
 # requires DoublePolyRing
 # can get single polyn by using no y_vars
@@ -52,6 +188,7 @@ function bpd2bin( bpd, R::DoublePolyRing=xy_ring( size(bpd.m)[1]-1, size(bpd.m)[
 
   for i=1:n
     for j=1:n
+
       if bpd.m[i,j]==0
         p=R.ring(0)
         if i<=aa
@@ -59,9 +196,30 @@ function bpd2bin( bpd, R::DoublePolyRing=xy_ring( size(bpd.m)[1]-1, size(bpd.m)[
         end
         if j<=bb
           p=p+y[j]
-        end        
+        end
+        if version=="groth" && i<=aa && j<=bb
+          p=p-x[i]*y[j]
+        end     
+        bin = bin*p
+        if version=="groth"
+          bin = -bin
+        end
+      end
+
+      if version=="groth" && bpd.m[i,j]==3
+        p=R.ring(1)
+        if i<=aa
+          p=p-x[i]
+        end
+        if j<=bb
+          p=p-y[j]
+        end
+        if i<=aa && j<=bb
+          p=p+x[i]*y[j]
+        end     
         bin = bin*p
       end
+
     end
   end
 
@@ -84,7 +242,7 @@ function bpds2pol( bpds, R::DoublePolyRing )
 end
 
 
-function schub_bpd( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1]  )
+function schub_bpd( w, R::DoublePolyRing=xy_ring( max(length(w)-1,1), max(length(w)-1,1) )[1]  )
 # compute schubert pol by bpd formula
   bpds=all_bpds(w)
 
@@ -101,7 +259,7 @@ end
 
 
 
-function schub_flats( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1] )
+function schub_drifts( w, R::DoublePolyRing=xy_ring( max(length(w)-1,1), max(length(w)-1,1) )[1] )
 # compute schubert pol by drift class formula
 
   fbpds = flat_bpds(w)
@@ -116,6 +274,148 @@ function schub_flats( w, R::DoublePolyRing=xy_ring( length(w)-1, length(w)-1 )[1
   return pol
 
 end
+
+
+@memoize function schub_dd( w, R::DoublePolyRing=xy_ring( max(length(w)-1,1), max(length(w)-1,1) )[1] )
+# compute schubert pol by divided differences
+
+  n=length(w)
+  while n>0 && w[n]==n
+    pop!(w)
+    n=length(w)
+  end
+
+  if n==0
+    return(R.ring(1))
+  end
+
+  if length(R.x_vars)<n-1
+    throw(ArgumentError("Not enough x variables for this method"))
+  end
+
+  i=n-1
+  while i>0 && w[i]>w[i+1]
+    i=i-1
+  end
+
+  if i==0
+    return sp0( n, R )
+  end
+
+  w = vcat( w[1:i-1], w[i+1], w[i], w[i+2:n] )
+
+  pol1 = schub_dd( w, R )
+
+  return ddx( pol1, i, R )
+
+end
+
+
+
+
+function groth_bpd( w, R::DoublePolyRing=xy_ring( max(length(w)-1,1), max(length(w)-1,1) )[1]  )
+# compute grothendieck pol by bpd formula
+  bpds=all_Kbpds(w)
+
+  pol=R.ring(0)
+
+  for bp in bpds
+    pol = pol+bpd2bin(bp,R, version="groth")
+  end
+
+  return((-1)^len(w)*pol)
+
+end
+
+
+@memoize function groth_dd( w, R::DoublePolyRing=xy_ring( max(length(w)-1,1), max(length(w)-1,1) )[1] )
+# compute grothendieck pol by divided differences
+
+  n=length(w)
+  while n>0 && w[n]==n
+    pop!(w)
+    n=length(w)
+  end
+
+  if n==0
+    return(R.ring(1))
+  end
+
+  if length(R.x_vars)<n-1
+    throw(ArgumentError("Not enough x variables for this method"))
+  end
+
+  i=n-1
+  while i>0 && w[i]>w[i+1]
+    i=i-1
+  end
+
+  if i==0
+    return gp0( n, R )
+  end
+
+  w = vcat( w[1:i-1], w[i+1], w[i], w[i+2:n] )
+
+  pol1 = groth_dd( w, R )
+
+  return pdx( pol1, i, R )
+
+end
+
+
+
+
+
+#############
+
+function sp0( n, R::DoublePolyRing=xy_ring( n-1, n-1 )[1] )
+
+  x=R.x_vars
+  y=R.y_vars
+
+  aa=length(x)
+  bb=length(y)
+
+  pol=1
+
+  for i in 1:n-1
+    for j in 1:n-i
+      p=R.ring(0)
+      if i<=aa p=p+x[i] end
+      if j<=bb p=p+y[j] end
+      pol = pol*p
+    end
+  end
+
+  return(pol)
+
+end
+
+
+function gp0( n, R::DoublePolyRing=xy_ring( n-1, n-1 )[1] )
+
+  x=R.x_vars
+  y=R.y_vars
+
+  aa=length(x)
+  bb=length(y)
+
+  pol=1
+
+  for i in 1:n-1
+    for j in 1:n-i
+      p=R.ring(0)
+      if i<=aa p=p+x[i] end
+      if j<=bb p=p+y[j] end
+      if i<=aa && j<=bb p=p-x[i]*y[j] end
+      pol = pol*p
+    end
+  end
+
+  return(pol)
+
+end
+
 
 
 function dc2sd( dc::Drift, R::DoublePolyRing=xy_ring( size(dc.m)[1]-1, size(dc.m)[2]-1 )[1]  )
@@ -214,17 +514,50 @@ end
 
 
 
-################
-# IN DEVELOPMENT
-################
+# difference operator
+function ddx(p,i,R)
+# p is a polynomial in R.x_vars
+
+  x = R.x_vars
+
+  if i>length(x)
+    return(R.ring(0))
+  end
+
+  if i==length(x)
+    p1 = evaluate( p, [x[i]], [R.ring(0)] )
+    q=divrem( p-p1, x[i] )[1]
+    return q
+  end
+
+  p1 = evaluate( p, [x[i],x[i+1]], [x[i+1],x[i]] )
+
+  q=divrem( p-p1, x[i]-x[i+1] )[1]
+
+  return q
+
+end
 
 
-# difference operator (not used)
-function ddx(p,i)
-# p is a polynomial in x=[x1,x2,..], assumed at least i+1 variables.
-  local p1 = evaluate( p, [x[i],x[i+1]], [x[i+1],x[i]] )
+# isobaric difference operator
+function pdx(p,i,R)
+# p is a polynomial in R.x_vars
 
-  local q=divrem( p-p1, x[i]-x[i+1] )[1]
+  x = R.x_vars
+
+  if i>length(x)
+    return(p)
+  end
+
+  if i==length(x)
+    p1 = evaluate( p, [x[i]], [R.ring(0)] )
+    q=divrem( p-(1-x[i])*p1, x[i] )[1]
+    return q
+  end
+
+  p1 = evaluate( p, [x[i],x[i+1]], [x[i+1],x[i]] )
+
+  q=divrem( (1-x[i+1])*p-(1-x[i])*p1, x[i]-x[i+1] )[1]
 
   return q
 
