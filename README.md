@@ -38,6 +38,32 @@ julia> ?schub_poly
 julia> ?groth_poly
 ```
 
+The file "SSYT.jl" has methods for generating Young tableaux, as well as (double, flagged) Schur polynomials.  It is loaded with "BpdSchub.jl".
+```julia
+julia> la = [2,1]; ff=2;
+
+julia> ssyt( la, ff )
+2-element Vector{Tableau}:
+ 
+1 1 
+2 
+
+ 
+1 2 
+2 
+
+julia> ff=[2,3];
+
+julia> R = xy_ring(5,0)[1];
+
+julia> sp = schur_poly( la, ff, R )
+x1^2*x2+x1*x2^2
+
+# the argument ff can be a vector of integers, for a flagged Schur polynomial:
+julia> sp = schur_poly( la, [2,3], R)
+x1^2*x2 + x1^2*x3 + x1*x2^2 + x1*x2*x3 + x2^2*x3
+```
+
 The file "BpdDraw.jl" can produce nice-looking diagrams for BPDs, in several formats (PNG, PDF, etc.), depending on what backend the Plots package is using.
 
 The app "BpdApp.jl" produces an interactive widget which displays BPDs and navigates by droop or drop moves among them, starting with the Rothe BPD.  To use it, make sure it is in the same directory as "BpdBase.jl" and "BpdDraw.jl", and that this directory is accessible to Julia.  Then open a Julia REPL and type
