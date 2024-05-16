@@ -38,11 +38,38 @@ end
 
 
 
-# TO DO: get (faint) grid to appear
+"""
+    draw_bpd( b::BPD, fn::String; img_size::(Int, Int)=(300,300) )
 
+Display the bumpless pipedream `b` written to an image file `fn`.
+
+## Arguments
+- `b::BPD`: a BPD
+- `fn::String`: the filename, with suffix specifying format.  (E.g., .png, .pdf)
+
+## Returns
+`plot`: a plot object
+
+## Example
+```julia
+# Generate a BPD plot
+julia> w = [1,4,5,3,2];
+
+julia> b = Rothe(w);
+
+julia> draw_bpd( b, "bpd1.png" );
+```
+"""
 function draw_bpd(B,fn; img_size=(300,300))
     n, m = size(B.m)
     p = plot(; xlim=(0, n), ylim=(0, m), aspect_ratio=:equal, legend=false, grid=true, framestyle=:none, tick_direction=:none, size=img_size)
+
+    for i=1:n-1
+      plot!([0,n],[i,i], linecolor=:black, linewidth=.25 )
+    end
+    for j=1:n-1
+      plot!([j,j],[0,n], linecolor=:black, linewidth=.25 )
+    end
     
     for i = 1:n
         for j = 1:n
@@ -66,6 +93,8 @@ function draw_bpd(B,fn; img_size=(300,300))
             end
         end
     end
+
+
     plot!(; framestyle=:box, linecolor=:black, linewidth=3, ticks=nothing)
     savefig(fn)
 end
@@ -84,12 +113,40 @@ function print_flat_bpds(w,fn,fmt)
 end
 
 
+"""
+    draw_bpd( dc::Drift, fn::String; img_size::(Int, Int)=(300,300) )
 
-# TO DO: get (faint) grid to appear
+Display the drift configuration `dc` written to an image file `fn`.
 
+## Arguments
+- `dc::Drift`: a drift object
+- `fn::String`: the filename, with suffix specifying format.  (E.g., .png, .pdf)
+
+## Returns
+`plot`: a plot object
+
+## Example
+```julia
+# Generate a Drift plot
+julia> w = [1,4,5,3,2];
+
+julia> b = Rothe(w);
+
+julia> dc = bpd2drift( b );
+
+julia> draw_drift( dc, "drift1.png" );
+```
+"""
 function draw_drift(B,fn; img_size=(300,300))
     n, m = size(B.m)
     p = plot(; xlim=(0, n), ylim=(0, m), aspect_ratio=:equal, legend=false, tick_direction=:none, size=img_size)
+
+    for i=1:n-1
+      plot!([0,n],[i,i], linecolor=:black, linewidth=.25 )
+    end
+    for j=1:n-1
+      plot!([j,j],[0,n], linecolor=:black, linewidth=.25 )
+    end
     
     for i = 1:n
         for j = 1:n

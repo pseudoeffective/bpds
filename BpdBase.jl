@@ -31,6 +31,37 @@ A BPD `b` has one field, `b.m`, which is a Matrix{Int8}.  The entries are intege
 ## Constructor
 
 The function `BPD(m)` takes as its argument `m` either a matrix with entries of type Int8 (with values 0-5) or of type String (with the six possible tiles).
+
+The type is sensitive to manner of construction, so the underlying matrix should be used to test equality.
+
+## Example
+```julia
+julia> mtx = Matrix( [ 0 0 2 ; 0 2 1 ; 2 1 1 ] );
+
+julia> b = BPD( mtx )
+O O / 
+O / + 
+/ + + 
+
+julia> b == mtx
+false
+
+julia> b.m == mtx
+true
+
+julia> mtx2 = Matrix( [ "O" "O" "/"; "O" "/" "+"; "/" "+" "+" ] )
+O O / 
+O / + 
+/ + + 
+
+julia> b2 = BPD(mtx2);
+
+julia> b2==b
+false
+
+julia> b2.m==b.m
+true
+```
 """
 struct BPD
     m::Matrix{Int8}
@@ -88,12 +119,26 @@ Construct the Rothe BPD for a permutation
 
 ```julia
 # Produce the BPD
-w = [1,4,5,3,2]
+julia> w = [3,2,5,1,4];
 
-b = Rothe(w)
+julia> b = Rothe(w)
+
+O O / - - 
+O / + - - 
+O | | O / 
+/ + + - + 
+| | | / + 
+
 
 # View the integer matrix which is stored
-b.m
+julia> b.m
+5×5 Matrix{Int8}:
+ 0  0  2  5  5
+ 0  2  1  5  5
+ 0  4  4  0  2
+ 2  1  1  5  1
+ 4  4  4  2  1
+
 ```
 """
 function Rothe(w)
@@ -612,21 +657,43 @@ An iterator generating all reduced BPDs for a permutation `w`
 
 ```julia
 # Define the iterator
-w = [1,4,5,3,2]
+julia> w = [3,2,5,1,4];
 
-bps = all_bpds(w);
+julia> bps = all_bpds(w);
 
 # Run a loop over the iterator
 
-for b in bps println(b) end;
+julia> i=0; for b in bps i+=1; end; i
+3
 
-# To reset the iterator, define it again
+# The iterator is exhausted; to reset it, define it again
 
-bps = all_bpds(w)
+julia> bps = all_bpds(w);
 
 # Form a vector of all BPDs for w
 
-bpds = collect(bps)
+julia> bpds = collect(bps)
+3-element Vector{Any}:
+ 
+O O / - - 
+O / + - - 
+O | | O / 
+/ + + - + 
+| | | / + 
+
+ 
+O O / - - 
+O O | / - 
+O / + % / 
+/ + + - + 
+| | | / + 
+
+ 
+O O O / - 
+O / - + - 
+O | / % / 
+/ + + - + 
+| | | / + 
 ```
 """
 function all_bpds(w)
@@ -692,21 +759,52 @@ An iterator generating all BPDs for a permutation `w`, including non-reduced K-t
 ## Examples
 ```julia
 # Define the iterator
-w = [1,4,5,3,2]
+julia> w = [3,2,5,1,4]
 
-bps = all_Kbpds(w);
+julia> bps = all_Kbpds(w);
 
 # Run a loop over the iterator
 
-for b in bps println(b) end;
+julia> i=0; for b in bps i+=1; end; i
+4
 
 # To reset the iterator, define it again
 
-bps = all_Kbpds(w)
+julia> bps = all_Kbpds(w);
 
 # Form a vector of all BPDs for w
 
-bpds = collect(bps)
+julia> bpds = collect(bps)
+4-element Vector{Any}:
+ 
+O O / - - 
+O / + - - 
+O | | O / 
+/ + + - + 
+| | | / + 
+
+ 
+O O / - - 
+O O | / - 
+O / + % / 
+/ + + - + 
+| | | / + 
+
+ 
+O O O / - 
+O O / + - 
+O / + % / 
+/ + + - + 
+| | | / + 
+
+ 
+O O O / - 
+O / - + - 
+O | / % / 
+/ + + - + 
+| | | / + 
+
+
 ```
 """
 function all_Kbpds(w)
@@ -808,21 +906,43 @@ An iterator generating all flat reduced BPDs for a permutation `w`
 ## Examples
 ```julia
 # Define the iterator
-w = [1,4,5,3,2]
+julia> w = [3,2,5,1,4];
 
-fbps = flat_bpds(w);
+julia> fbps = flat_bpds(w);
 
 # Run a loop over the iterator
 
-for b in fbps println(b) end;
+julia> i=0; for b in fbps i+=1 end; i
+3
 
 # To reset the iterator, define it again
 
-fbps = flat_bpds(w)
+julia> fbps = flat_bpds(w);
 
 # Form a vector of flat BPDs for w
 
-fbpds = collect(fbps)
+julia> fbpds = collect(fbps)
+3-element Vector{Any}:
+ 
+O O / - - 
+O / + - - 
+O | | O / 
+/ + + - + 
+| | | / + 
+
+ 
+O O / - - 
+O O | / - 
+O / + % / 
+/ + + - + 
+| | | / + 
+
+ 
+O O O / - 
+O / - + - 
+O | / % / 
+/ + + - + 
+| | | / + 
 ```
 """
 function flat_bpds(w)
@@ -861,15 +981,24 @@ Convert a bumpless pipe dream to an alternating sign matrix
 ## Example
 ```julia
 # Generate all reduced BPDs for a permutation
-w = [1,4,5,3,2]
+julia> w = [3,2,5,1,4];
 
-bps = all_bpds(w);
+julia> bps = all_Kbpds(w);
 
 # Construct a vector of the corresponding ASMs
 
-asms = [];
+julia> asms = [];
 
-for b in bps push!(asms, bpd2asm(b)) end;
+julia> for b in bps push!(asms, bpd2asm(b)) end;
+
+julia> asms[3]
+5×5 Matrix{Int8}:
+ 0  0  0   1  0
+ 0  0  1   0  0
+ 0  1  0  -1  1
+ 1  0  0   0  0
+ 0  0  0   1  0
+
 ```
 """
 function bpd2asm( b::BPD )
@@ -906,25 +1035,39 @@ Convert an alternating sign matrix to a bumpless pipe dream
 ## Example
 ```julia
 # Generate all reduced BPDs for a permutation
-w = [1,4,5,3,2]
+julia> w = [3,2,5,1,4];
 
-bpds = collect(all_bpds(w));
+julia> bpds = collect(all_Kbpds(w));
 
 # Convert a BPD to an ASM
 
-b = bpds[7]
+julia> b = bpds[3]
 
-a = bpd2asm(b)
+O O O / - 
+O O / + - 
+O / + % / 
+/ + + - + 
+| | | / + 
+
+julia> a = bpd2asm(b)
+5×5 Matrix{Int8}:
+ 0  0  0   1  0
+ 0  0  1   0  0
+ 0  1  0  -1  1
+ 1  0  0   0  0
+ 0  0  0   1  0
 
 # Convert the ASM back to a BPD
 
-b2 = asm2bpd(a)
+julia> b2 = asm2bpd(a);
 
 # The BPD type is sensitive to construction, use b.m to check identity
 
-b == b2
+julia> b == b2
+false
 
-b.m == b2.m
+julia> b.m == b2.m
+true
 ```
 """
 function asm2bpd( a )
@@ -995,22 +1138,6 @@ function asm2bpd( a )
   return BPD(b)
 end
 
-
-function len( w::Vector{Int} )
-# coxeter length of a permutation (or word)
-  n = length(w)
-  a = 0
-
-  for i in 1:n-1
-    for j in i+1:n
-      if w[i]>=w[j]
-        a=a+1
-      end
-    end
-  end
-
-  return a
-end    
 
 
 ####################
