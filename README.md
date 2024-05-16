@@ -62,6 +62,10 @@ x1^2*x2+x1*x2^2
 # the argument ff can be a vector of integers, for a flagged Schur polynomial:
 julia> sp = schur_poly( la, [2,3], R)
 x1^2*x2 + x1^2*x3 + x1*x2^2 + x1*x2*x3 + x2^2*x3
+
+# use the keyword argument `mu` for a skew Schur polynomial:
+julia> ssp = schur_poly( la, [2,3], R, mu=[1] )
+x1^2 + 2*x1*x2 + x1*x3 + x2^2 + x2*x3
 ```
 
 The file "BpdDraw.jl" can produce nice-looking diagrams for BPDs, in several formats (PNG, PDF, etc.), depending on what backend the Plots package is using.
