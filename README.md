@@ -22,14 +22,17 @@ julia> Rxy = xy_ring(4,4)[1];
 
 julia> sp = schub_poly(w,Rxy)
 x1*x2 + x1*x3 + x1*y1 + x1*y2 + x2*x3 + x2*y1 + x2*y2 + x3*y1 + x3*y2 + y1^2 + y1*y2 + y2^2
+```
 
-# there is a function for quickly counting the terms of a Schubert polynomial
+There is a function for quickly counting the terms of a Schubert polynomial:
+```julia
 julia> w=[1,4,3,2,10,9,8,7,6,5];
 
 julia> nschub(w)
 4424420
-
-# for more info, see the help files:
+```
+For more info, see the help files:
+```julia
 julia> ?schub_poly
 
 julia> ?groth_poly
