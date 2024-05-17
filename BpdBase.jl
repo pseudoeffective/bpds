@@ -604,25 +604,25 @@ end
 ###############
 # iterator generating all BPDs for w
 
-struct AllBelowIterator
-    stack::Vector{Any}
+struct BPDIterator
+    stack::Vector{Tuple{BPD,Vector{BPD}}}
     seen::Set{Matrix}
 end
 
 
-function AllBelowIterator(bpd::BPD)
+function BPDIterator(bpd::BPD)
     # initialize with the first element
     seen = Set([bpd.m])
     droops = all_droops(bpd)
     stack = [(bpd, droops)]
-    return AllBelowIterator(stack,seen)
+    return BPDIterator(stack,seen)
 end
 
+Base.eltype(::Type{BPDIterator}) = BPD
 
-Base.IteratorSize(::Type{<:AllBelowIterator}) = Base.SizeUnknown()
+Base.IteratorSize(::Type{<:BPDIterator}) = Base.SizeUnknown()
 
-
-function Base.iterate(iter::AllBelowIterator, state=nothing)
+function Base.iterate(iter::BPDIterator, state=nothing)
 
     while !isempty(iter.stack)
         current, droops = pop!(iter.stack)
@@ -651,7 +651,7 @@ An iterator generating all reduced BPDs for a permutation `w`
 `w::Vector{Int}`: a permutation
 
 ## Returns
-`AllBelowIterator`: an iterator type generating all reduced BPDs for `w`.
+`BPDIterator`: an iterator type generating all reduced BPDs for `w`.
 
 ## Examples
 
@@ -698,7 +698,7 @@ O | / % /
 """
 function all_bpds(w)
     local bpd = Rothe(w)
-    iter = AllBelowIterator(bpd)
+    iter = BPDIterator(bpd)
 
     return iter
 end
@@ -707,25 +707,26 @@ end
 ##########
 # iterator generating all K-BPDs for w
 
-struct AllKBelowIterator
+struct KBPDIterator
     stack::Vector{Any}
     seen::Set{Matrix}
 end
 
 
-function AllKBelowIterator(bpd::BPD)
+function KBPDIterator(bpd::BPD)
     # Initialize with the first element
     seen = Set([bpd.m])
     droops = all_Kdroops(bpd)
     stack = [(bpd, droops)]
-    return AllKBelowIterator(stack,seen)
+    return KBPDIterator(stack,seen)
 end
 
+Base.eltype(::Type{KBPDIterator}) = BPD
 
-Base.IteratorSize(::Type{<:AllKBelowIterator}) = Base.SizeUnknown()
+Base.IteratorSize(::Type{<:KBPDIterator}) = Base.SizeUnknown()
 
 
-function Base.iterate(iter::AllKBelowIterator, state=nothing)
+function Base.iterate(iter::KBPDIterator, state=nothing)
 
     while !isempty(iter.stack)
         current, droops = pop!(iter.stack)
@@ -754,7 +755,7 @@ An iterator generating all BPDs for a permutation `w`, including non-reduced K-t
 `w::Vector{Int}`: a permutation
 
 ## Returns
-`AllKBelowIterator`: an iterator type generating all BPDs for `w`.
+`KBPDIterator`: an iterator type generating all BPDs for `w`.
 
 ## Examples
 ```julia
@@ -809,7 +810,7 @@ O | / % /
 """
 function all_Kbpds(w)
     local bpd = Rothe(w)
-    iter = AllKBelowIterator(bpd)
+    iter = KBPDIterator(bpd)
 
     return iter
 end
@@ -854,25 +855,25 @@ end
 #############
 # iterator generating all flat BPDs for w
 
-struct FlatBelowIterator
+struct FlatBPDIterator
     stack::Vector{Any}
     seen::Set{Matrix}
 end
 
-
-function FlatBelowIterator(bpd::BPD)
+function FlatBPDIterator(bpd::BPD)
     # initialize with the first element
     seen = Set([makeflat(bpd).m])
     drops = flat_drops(makeflat(bpd))
     stack = [(makeflat(bpd), drops)]
-    return FlatBelowIterator(stack,seen)
+    return FlatBPDIterator(stack,seen)
 end
 
+Base.eltype(::Type{FlatBPDIterator}) = BPD
 
-Base.IteratorSize(::Type{<:FlatBelowIterator}) = Base.SizeUnknown()
+Base.IteratorSize(::Type{<:FlatBPDIterator}) = Base.SizeUnknown()
 
 
-function Base.iterate(iter::FlatBelowIterator, state=nothing)
+function Base.iterate(iter::FlatBPDIterator, state=nothing)
 
     while !isempty(iter.stack)
         current, drops = pop!(iter.stack)
@@ -901,7 +902,7 @@ An iterator generating all flat reduced BPDs for a permutation `w`
 `w::Vector{Int}`: a permutation
 
 ## Returns
-`FlatBelowIterator`: an iterator type generating all flat reduced BPDs for `w`.
+`FlatBPDIterator`: an iterator type generating all flat reduced BPDs for `w`.
 
 ## Examples
 ```julia
@@ -947,7 +948,7 @@ O | / % /
 """
 function flat_bpds(w)
     local bpd = Rothe(w)
-    iter = FlatBelowIterator(bpd)
+    iter = FlatBPDIterator(bpd)
 
     return iter
 end
@@ -955,7 +956,7 @@ end
 
 function vec_flat_bpds(w)
     local bpd = Rothe(w)
-    iter = FlatBelowIterator(bpd)
+    iter = FlatBPDIterator(bpd)
 
     return collect(iter)
 end

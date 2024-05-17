@@ -101,12 +101,24 @@ end
 
 
 
+function print_all_bpds(w,fn,fmt)
+
+  i=0
+
+  for b in all_bpds(w)
+    i+=1
+    draw_bpd(b,string(fn,i,fmt))
+  end
+
+end
+
+
 function print_flat_bpds(w,fn,fmt)
 
-  local ds=collect( flat_bpds(w) )
-  local n=length(ds)
+  i=0
 
-  for i=1:n
+  for b in flat_bpds(w)
+    i+=1
     draw_bpd(ds[i],string(fn,i,fmt))
   end
 

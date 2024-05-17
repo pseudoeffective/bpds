@@ -195,25 +195,28 @@ end
 =#
 
 
-struct AllDriftsSE_Iter
+struct DriftIterator
   stack::Vector{Any}
   seen::Set{Matrix}
 end
 
 
-function AllDriftsSE_Iter(dc::Drift)
+function DriftIterator(dc::Drift)
   # Initialize
   seen = Set([dc.m])
   dfts = step_drifts(dc)
   stack = [(dc, dfts)]
-  return AllDriftsSE_Iter(stack,seen)
+  return DriftIterator(stack,seen)
 end
 
 
-Base.IteratorSize(::Type{<:AllDriftsSE_Iter}) = Base.SizeUnknown()
+Base.eltype(::Type{DriftIterator}) = Drift
 
 
-function Base.iterate(iter::AllDriftsSE_Iter, state=nothing)
+Base.IteratorSize(::Type{<:DriftIterator}) = Base.SizeUnknown()
+
+
+function Base.iterate(iter::DriftIterator, state=nothing)
 
     while !isempty(iter.stack)
         current, drfts = pop!(iter.stack)
@@ -237,7 +240,7 @@ function drift_class(dc::Drift)
 
   dc2 = nw_reset(dc)
 
-  iter = AllDriftsSE_Iter(dc2)
+  iter = DriftIterator(dc2)
 
 #  empty!(hash_all_drifts_SE)  # clear the lookup table
 
