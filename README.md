@@ -68,7 +68,37 @@ julia> ssp = schur_poly( la, [2,3], R, mu=[1] )
 x1^2 + 2*x1*x2 + x1*x3 + x2^2 + x2*x3
 ```
 
-The file "BpdDraw.jl" can produce nice-looking diagrams for BPDs, in several formats (PNG, PDF, etc.), depending on what backend the Plots package is using.
+The file "BpdDraw.jl" can produce nice-looking diagrams for BPDs, in several formats (PNG, PDF, etc.), depending on what backend the Plots package is using.  For example:
+```julia
+julia> w = [5,2,1,4,3];
+
+julia> bpds = collect(all_bpds(w))
+3-element Vector{BPD}:
+ 
+O O O O / 
+O / - - + 
+/ + - - + 
+| | O / + 
+| | / + + 
+
+ 
+O O O O / 
+O / - - + 
+O | / - + 
+/ + % / + 
+| | / + + 
+
+ 
+O O O O / 
+O O / - + 
+/ - + - + 
+| / % / + 
+| | / + +
+
+julia> draw_bpd( bpds[1], "bpd.png" )
+```
+![bpd](https://github.com/pseudoeffective/bpds/assets/62109185/96d60283-f7ed-4a88-bf7c-75c3b8cd9e30)
+
 
 The app "BpdApp.jl" produces an interactive widget which displays BPDs and navigates by droop or drop moves among them, starting with the Rothe BPD.  To use it, make sure it is in the same directory as "BpdBase.jl" and "BpdDraw.jl", and that this directory is accessible to Julia.  Then open a Julia REPL and type
 ```include("BpdApp.jl")```
