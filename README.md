@@ -95,7 +95,7 @@ O O / - +
 | / % / + 
 | | / + +
 
-julia> draw_bpd( bpds[1], "bpd.png" )
+julia> draw_bpd( bpds[1], saveto="bpd.png" )
 ```
 ![bpd](https://github.com/pseudoeffective/bpds/assets/62109185/96d60283-f7ed-4a88-bf7c-75c3b8cd9e30)
 
