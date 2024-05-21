@@ -103,7 +103,7 @@ signal_connect(button, "clicked") do widget
     
     # Generate the image and update the Gtk.Image widget
     tmp_filename = tempname() * ".png"
-    draw_bpd(bpd, tmp_filename)
+    draw_bpd(bpd, saveto=tmp_filename, visible=false)
     set_gtk_property!(image, :file, tmp_filename)
     rm(tmp_filename)
 
@@ -137,7 +137,7 @@ signal_connect(action_grid[i,j], "button-press-event") do widget, event
         filenames = []
         for i=1:num_images
             tmp_filename = tempname() * "_$i.png"
-            draw_bpd(bpds[i], tmp_filename; img_size=computed_size)
+            draw_bpd(bpds[i], saveto=tmp_filename, img_size=computed_size, visible=false )
             push!(filenames, tmp_filename)
         end
 
