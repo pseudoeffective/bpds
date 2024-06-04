@@ -52,8 +52,7 @@ julia> ssyt( la, ff )
 1 2 
 2 
 
-julia> ff=[2,3];
-
+# define a polynomial ring in 5 x variables and 0 y variables
 julia> R = xy_ring(5,0)[1];
 
 julia> sp = schur_poly( la, ff, R )
@@ -66,6 +65,12 @@ x1^2*x2 + x1^2*x3 + x1*x2^2 + x1*x2*x3 + x2^2*x3
 # use the keyword argument `mu` for a skew Schur polynomial:
 julia> ssp = schur_poly( la, [2,3], R, mu=[1] )
 x1^2 + 2*x1*x2 + x1*x3 + x2^2 + x2*x3
+
+# changing the ambient ring to one with y variables produces a double Schur polynomial
+julia> R = xy_ring(5,5)[1];
+
+julia> dsp = schur_poly( la, 2, R )
+x1^2*x2 + x1^2*y1 + x1*x2^2 + 2*x1*x2*y1 + x1*x2*y2 + x1*x2*y3 + x1*y1^2 + x1*y1*y2 + x1*y1*y3 + x2^2*y1 + x2*y1^2 + x2*y1*y2 + x2*y1*y3 + y1^2*y2 + y1^2*y3
 ```
 
 The file "BpdDraw.jl" can produce nice-looking diagrams for BPDs, in several formats (PNG, PDF, etc.), depending on what backend the Plots package is using.  For example:
