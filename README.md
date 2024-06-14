@@ -4,7 +4,7 @@
 
 The file "BpdWidget.jl" produces an interactive widget which displays BPDs and navigates by droop or drop moves among them, starting with the Rothe BPD.  To use it, first load the [SchubertPolynomials](https://github.com/pseudoeffective/SchubertPolynomials.jl) package.  Make sure the file "BpdWidget.jl" is in a directory is accessible to Julia.  Then type
 ```julia-repl
-julia> include("BpdApp.jl")
+julia> include("BpdWidget.jl")
 ```
 
 The "Rothe" button creates the Rothe BPD, and resets the window if other BPDs have been created.
